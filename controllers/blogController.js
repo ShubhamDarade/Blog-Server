@@ -8,11 +8,24 @@ const {
   uploadImage,
   deleteImage,
 } = require("../utils/helper");
+const { createBlogSchema } = require("../validations/blogValidation");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 
 exports.createBlog = async (req, res) => {
   try {
+    const { error } = createBlogSchema.validate(req.body, {
+      abortEarly: false,
+    });
+
+    if (error) {
+      const errorMessages = error.details.map((err) => err.message).join(", ");
+      return res.status(400).json({
+        success: false,
+        message: errorMessages,
+        error: errorMessages,
+      });
+    }
     const { title, description } = req.body;
     const { id } = req.user;
 
@@ -50,7 +63,7 @@ exports.createBlog = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error in create blog callback",
+      message: error.message,
       error: error.message,
     });
   }

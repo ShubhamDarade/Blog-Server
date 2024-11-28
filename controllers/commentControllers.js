@@ -1,8 +1,21 @@
 const mongoose = require("mongoose");
 const Comment = require("../models/Comment");
+const { createCommentSchema } = require("../validations/commentValidation");
 
 exports.createComment = async (req, res) => {
   try {
+    const { error } = createCommentSchema.validate(req.body, {
+      abortEarly: false,
+    });
+
+    if (error) {
+      const errorMessages = error.details.map((err) => err.message).join(", ");
+      return res.status(400).json({
+        success: false,
+        message: errorMessages,
+        error: errorMessages,
+      });
+    }
     const userId = req.user.id;
     const { blogId } = req.params;
     const { content } = req.body;
