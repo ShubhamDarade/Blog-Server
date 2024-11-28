@@ -1,7 +1,10 @@
 const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const userValidation = require("../validations/userValidation");
+const {
+  registerSchema,
+  loginSchema,
+} = require("../validations/userValidation");
 const {
   imageValidator,
   convertImageToBase64,
@@ -12,7 +15,7 @@ const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 
 exports.registerUser = async (req, res) => {
-  const { error } = userValidation.registerSchema.validate(req.body, {
+  const { error } = registerSchema.validate(req.body, {
     abortEarly: false,
   });
 
@@ -20,7 +23,7 @@ exports.registerUser = async (req, res) => {
     const errorMessages = error.details.map((err) => err.message).join(", ");
     return res.status(400).json({
       success: false,
-      message: "Validaations fails",
+      message: errorMessages,
       error: errorMessages,
     });
   }
@@ -60,8 +63,6 @@ exports.registerUser = async (req, res) => {
 
     const payload = {
       id: user._id,
-      name: user.name,
-      email: user.email,
     };
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "365d",
@@ -71,19 +72,20 @@ exports.registerUser = async (req, res) => {
       success: true,
       message: "Login successful",
       token,
-      user,
+      userName: user.name,
+      userAvatar: user.avatar,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error in register callback",
+      message: error.message,
       error: error.message,
     });
   }
 };
 
 exports.loginUser = async (req, res) => {
-  const { error } = userValidation.loginSchema.validate(req.body, {
+  const { error } = loginSchema.validate(req.body, {
     abortEarly: false,
   });
 
@@ -91,7 +93,7 @@ exports.loginUser = async (req, res) => {
     const errorMessages = error.details.map((err) => err.message).join(", ");
     return res.status(400).json({
       success: false,
-      message: "Validaations fails",
+      message: errorMessages,
       error: errorMessages,
     });
   }
@@ -112,8 +114,6 @@ exports.loginUser = async (req, res) => {
 
     const payload = {
       id: user._id,
-      name: user.name,
-      email: user.email,
     };
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "365d",
@@ -122,7 +122,8 @@ exports.loginUser = async (req, res) => {
       success: true,
       message: "Login successful",
       token,
-      user,
+      userName: user.name,
+      userAvatar: user.avatar,
     });
   } catch (error) {
     res
