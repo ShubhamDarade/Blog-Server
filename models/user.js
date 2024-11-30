@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
       required: true,
-      maxlength: 25,
+      maxlength: 35,
     },
     avatar: {
       type: String,
@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      maxlength: 25,
+      maxlength: 35,
       unique: true,
       lowercase: true,
       trim: true,
