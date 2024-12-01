@@ -4,8 +4,8 @@ const { supportedMimes } = require("../config/filesystem");
 const imageToBase64 = require("image-to-base64");
 
 const imageValidator = (size, mime) => {
-  if (bytesToMb(size) > 1) {
-    return "Image size must be less than 1 MB";
+  if (bytesToMb(size) > 5) {
+    return "Image size must be less than 5 MB";
   } else if (!supportedMimes.includes(mime)) {
     return "Image must be type of png,jpg,jpeg,svg,wrbp,gif...";
   }
