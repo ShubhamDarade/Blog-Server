@@ -31,27 +31,28 @@ exports.registerUser = async (req, res) => {
   let avatarPath =
     "https://media.istockphoto.com/id/1341046662/vector/picture-profile-icon-human-or-people-sign-and-symbol-for-template-design.jpg?s=612x612&w=0&k=20&c=A7z3OK0fElK3tFntKObma-3a7PyO8_2xxW0jtmjzT78=";
   const avatar = req.files?.avatar;
+  let imgName;
+  try {
+    if (avatar) {
+      const message = imageValidator(avatar.size, avatar.mimetype);
+      if (message != null) {
+        return res.status(400).json({
+          success: false,
+          message,
+        });
+      }
 
-  if (avatar) {
-    const message = imageValidator(avatar.size, avatar.mimetype);
-    if (message != null) {
-      return res.status(400).json({
-        success: false,
-        message,
-      });
+      imgName = uuidv4() + path.extname(avatar.name);
+      const uploadPath = process.cwd() + "/public/" + imgName;
+
+      await uploadImage(avatar, uploadPath);
+      const img64 = await convertImageToBase64(uploadPath, avatar.mimetype);
+
+      avatarPath = img64;
     }
 
-    const imgName = uuidv4() + path.extname(avatar.name);
-    const uploadPath = process.cwd() + "/public/" + imgName;
+    const { name, email, password } = req.body;
 
-    await uploadImage(avatar, uploadPath);
-    const img64 = await convertImageToBase64(uploadPath, avatar.mimetype);
-    deleteImage(imgName);
-    avatarPath = img64;
-  }
-
-  const { name, email, password } = req.body;
-  try {
     let user = await User.findOne({ email });
     if (user)
       return res
@@ -81,6 +82,10 @@ exports.registerUser = async (req, res) => {
       message: error.message,
       error: error.message,
     });
+  } finally {
+    if (imgName) {
+      deleteImage(imgName);
+    }
   }
 };
 

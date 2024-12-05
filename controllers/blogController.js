@@ -13,6 +13,7 @@ const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 
 exports.createBlog = async (req, res) => {
+  let imgName;
   try {
     const { error } = createBlogSchema.validate(req.body, {
       abortEarly: false,
@@ -41,13 +42,12 @@ exports.createBlog = async (req, res) => {
         });
       }
 
-      const imgName = uuidv4() + path.extname(img.name);
+      imgName = uuidv4() + path.extname(img.name);
       const uploadPath = process.cwd() + "/public/" + imgName;
 
       await uploadImage(img, uploadPath);
       const img64 = await convertImageToBase64(uploadPath, img.mimetype);
 
-      deleteImage(imgName);
       imagePath = img64;
     }
 
@@ -66,6 +66,10 @@ exports.createBlog = async (req, res) => {
       message: error.message,
       error: error.message,
     });
+  } finally {
+    if (imgName) {
+      deleteImage(imgName);
+    }
   }
 };
 

@@ -21,10 +21,12 @@ const getImgUrl = (imgName) => {
 
 const deleteImage = (imageName) => {
   const path = process.cwd() + "/public/" + imageName;
-  // console.log(path);
-
   if (fs.existsSync(path)) {
-    fs.unlinkSync(path);
+    try {
+      fs.unlinkSync(path);
+    } catch (error) {
+      console.error("Failed to delete file:", error.message);
+    }
   }
 };
 
