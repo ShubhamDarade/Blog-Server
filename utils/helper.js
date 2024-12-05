@@ -1,5 +1,4 @@
 const fs = require("fs");
-const path = require("path");
 const { supportedMimes } = require("../config/filesystem");
 const imageToBase64 = require("image-to-base64");
 
@@ -26,15 +25,6 @@ const deleteImage = (imageName) => {
 
   if (fs.existsSync(path)) {
     fs.unlinkSync(path);
-  }
-};
-
-const convertImageToBase64Old = async (imagePath) => {
-  try {
-    const base64Image = await imageToBase64(imagePath); // Pass image path directly
-    return base64Image; // Return the Base64 string
-  } catch (error) {
-    throw new Error("Failed to read image file");
   }
 };
 
