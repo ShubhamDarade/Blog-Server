@@ -77,7 +77,7 @@ exports.getAllBlogs = async (req, res) => {
   try {
     // const blogs = await Blog.find({});
     const blogs = await Blog.aggregate([
-      { $sort: { createdAt: -1 } }, // Sorting first to use the index
+      { $sort: { createdAt: -1 } }, 
       {
         $project: {
           description: 0,
