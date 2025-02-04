@@ -1,7 +1,10 @@
 const mongoose = require("mongoose");
 const user = require("../models/user");
+const logger = require("../config/logger");
 
 exports.getAllAuthors = async (req, res) => {
+  logger.info(`[GET ALL AUTHORS] Request received`);
+
   try {
     const authors = await user.aggregate([
       {
@@ -17,12 +20,12 @@ exports.getAllAuthors = async (req, res) => {
           let: {
             userId: "$_id",
           },
-          // Pass the user _id to the lookup stage
+
           pipeline: [
             {
               $match: {
                 $expr: {
-                  $eq: ["$author", "$$userId"], // Match blogs where author is the user _id
+                  $eq: ["$author", "$$userId"],
                 },
               },
             },
@@ -36,15 +39,11 @@ exports.getAllAuthors = async (req, res) => {
         },
       },
       {
-        $match:
-          /**
-           * query: The query in MQL.
-           */
-          {
-            blogs: {
-              $ne: [],
-            },
+        $match: {
+          blogs: {
+            $ne: [],
           },
+        },
       },
       {
         $project: {
@@ -53,34 +52,49 @@ exports.getAllAuthors = async (req, res) => {
           email: 1,
           blogCount: {
             $size: "$blogs",
-          }, // Count the number of blogs
+          },
         },
       },
     ]);
+
+    logger.info(`[GET ALL AUTHORS] Success - Total Authors: ${authors.length}`);
     return res.status(200).json({
       success: true,
-      message: "All authors",
+      message: "All authors fetched successfully",
       authorCount: authors.length,
       authors,
     });
   } catch (error) {
+    logger.error(`[GET ALL AUTHORS] Error - ${error.message}`);
     res.status(500).json({
       success: false,
-      message: "Error in fetching all authors callback",
+      message: "Error in fetching all authors",
       error: error.message,
     });
   }
 };
 
 exports.getAuthor = async (req, res) => {
-  try {
-    const { authorId } = req.params;
+  const { authorId } = req.params;
+  logger.info(`[GET AUTHOR] Request received - Author ID: ${authorId}`);
 
-    // Check if id is a valid ObjectId
+  try {
     if (!mongoose.Types.ObjectId.isValid(authorId)) {
+      logger.warn(`[GET AUTHOR] Invalid Author ID: ${authorId}`);
       return res.status(400).json({
         success: false,
-        message: "Invalid blog ID",
+        message: "Invalid author ID",
+      });
+    }
+
+    const authorExists = await user.findById(authorId);
+    if (!authorExists) {
+      logger.warn(
+        `[GET AUTHOR] Author does not exist - Author ID: ${authorId}`
+      );
+      return res.status(400).json({
+        success: false,
+        message: "Author does not exist",
       });
     }
 
@@ -122,15 +136,19 @@ exports.getAuthor = async (req, res) => {
       },
     ]);
 
+    logger.info(
+      `[GET AUTHOR] Author fetched successfully - Author ID: ${authorId}, Blog Count: ${author[0]?.blogCount}`
+    );
     return res.status(200).json({
       success: true,
-      message: "Author fetch",
+      message: "Author fetched successfully",
       author: author[0],
     });
   } catch (error) {
+    logger.error(`[GET AUTHOR] Error - ${error.message}`);
     res.status(500).json({
       success: false,
-      message: "Error in fetching all authors callback",
+      message: "Error in fetching author details",
       error: error.message,
     });
   }

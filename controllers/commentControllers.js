@@ -1,8 +1,15 @@
 const mongoose = require("mongoose");
 const Comment = require("../models/Comment");
+const Blog = require("../models/Blog");
+const User = require("../models/user");
+const logger = require("../config/logger");
 const { createCommentSchema } = require("../validations/commentValidation");
 
 exports.createComment = async (req, res) => {
+  logger.info(
+    `[CREATE COMMENT] Request received - User ID: ${req.user.id}, Blog ID: ${req.params.blogId}`
+  );
+
   try {
     const { error } = createCommentSchema.validate(req.body, {
       abortEarly: false,
@@ -10,28 +17,62 @@ exports.createComment = async (req, res) => {
 
     if (error) {
       const errorMessages = error.details.map((err) => err.message).join(", ");
+      logger.warn(
+        `[CREATE COMMENT] Validation failed - Errors: ${errorMessages}`
+      );
       return res.status(400).json({
         success: false,
         message: errorMessages,
         error: errorMessages,
       });
     }
+
     const userId = req.user.id;
     const { blogId } = req.params;
     const { content } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(blogId)) {
+      logger.warn(`[CREATE COMMENT] Invalid Blog ID: ${blogId}`);
       return res.status(400).json({
         success: false,
         message: "Invalid blog ID",
       });
     }
 
+    const isBlogExists = await Blog.findOne({ _id: blogId });
+    if (!isBlogExists) {
+      logger.warn(`[CREATE COMMENT] Blog does not exist - Blog ID: ${blogId}`);
+      return res
+        .status(400)
+        .json({ success: false, message: "Blog does not exist" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      logger.warn(`[CREATE COMMENT] Invalid User ID: ${userId}`);
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    const isUserExists = await User.findOne({ _id: userId });
+    if (!isUserExists) {
+      logger.warn(`[CREATE COMMENT] User does not exist - User ID: ${userId}`);
+      return res
+        .status(400)
+        .json({ success: false, message: "User does not exist" });
+    }
+
     const comment = await Comment.create({ content, blogId, userId });
+    logger.info(
+      `[CREATE COMMENT] Comment created successfully - Comment ID: ${comment._id}`
+    );
+
     return res
       .status(201)
       .json({ success: true, message: "Comment created", comment });
   } catch (error) {
+    logger.error(`[CREATE COMMENT] Error - ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error in create comment callback",
@@ -41,51 +82,58 @@ exports.createComment = async (req, res) => {
 };
 
 exports.getComments = async (req, res) => {
-  try {
-    const { blogId } = req.params;
+  const { blogId } = req.params;
+  logger.info(`[GET COMMENTS] Request received - Blog ID: ${blogId}`);
 
+  try {
     if (!mongoose.Types.ObjectId.isValid(blogId)) {
+      logger.warn(`[GET COMMENTS] Invalid Blog ID: ${blogId}`);
       return res.status(400).json({
         success: false,
         message: "Invalid blog ID",
       });
     }
 
+    const isBlogExists = await Blog.findOne({ _id: blogId });
+    if (!isBlogExists) {
+      logger.warn(`[GET COMMENTS] Blog does not exist - Blog ID: ${blogId}`);
+      return res
+        .status(400)
+        .json({ success: false, message: "Blog does not exist" });
+    }
+
     const comments = await Comment.aggregate([
       {
         $match: {
-          blogId: new mongoose.Types.ObjectId(blogId), // Match comments with the specified blogId
+          blogId: new mongoose.Types.ObjectId(blogId),
         },
       },
       {
-        // Step 1: Sort the comments by createdAt in ascending order
         $sort: {
-          createdAt: -1, // Sort comments by createdAt in ascending order
+          createdAt: -1,
         },
       },
       {
-        // Step 2: Lookup to fetch user details based on userId from the comment
         $lookup: {
-          from: "users", // Name of the users collection
-          localField: "userId", // Field in comments collection (userId)
-          foreignField: "_id", // Field in users collection (_id)
-          as: "user", // Alias for storing user data
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
           pipeline: [
             {
               $project: {
-                name: 1, // Include the user's name
-                avatar: 1, // Include the user's avatar
-                _id: 1, // Exclude the user's _id
+                name: 1,
+                avatar: 1,
+                _id: 1,
               },
             },
           ],
         },
       },
       {
-        // Step 3: Unwind user data (because $lookup creates an array)
         $unwind: {
-          path: "$user", // Flatten the user data array
-          preserveNullAndEmptyArrays: true, // Handle cases where there might not be a user
+          path: "$user",
+          preserveNullAndEmptyArrays: true,
         },
       },
       {
@@ -96,6 +144,10 @@ exports.getComments = async (req, res) => {
         },
       },
     ]);
+
+    logger.info(
+      `[GET COMMENTS] Success - Blog ID: ${blogId}, Total Comments: ${comments.length}`
+    );
     return res.status(200).json({
       success: true,
       message: "Fetch comments",
@@ -103,6 +155,7 @@ exports.getComments = async (req, res) => {
       comments,
     });
   } catch (error) {
+    logger.error(`[GET COMMENTS] Error - ${error.message}`);
     res.status(500).json({
       success: false,
       message: "Error in fetching comments callback",

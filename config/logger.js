@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const winston = require("winston");
+const moment = require("moment-timezone");
 
 const logDir = path.join(__dirname, "../logs");
 
@@ -10,7 +11,11 @@ if (!fs.existsSync(logDir)) {
 
 const customFormat = winston.format.printf(
   ({ timestamp, level, message, stack }) => {
-    return `${timestamp} [${level.toUpperCase()}]: ${message}${
+    const formattedTimestamp = moment(timestamp)
+      .tz("Asia/Kolkata") // Set to India Standard Time (IST)
+      .format("MM/DD/YYYY, hh:mm:ss A"); // 12-hour format with AM/PM
+
+    return `${formattedTimestamp} [${level.toUpperCase()}]: ${message}${
       stack ? `\nStack: ${stack}` : ""
     }`;
   }

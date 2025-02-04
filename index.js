@@ -6,6 +6,7 @@ const Routes = require("./routes/index");
 const fileUpload = require("express-fileupload");
 // const helmet = require("helmet");
 const limiter = require("./config/ratelimiter");
+const logger = require("./config/logger");
 
 db.connectDB();
 
@@ -29,5 +30,5 @@ app.use(Routes);
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
-  console.log(`Server Running on port no ${PORT}`);
+  logger.info(`[SERVER] Server running on port ${PORT}`);
 });
